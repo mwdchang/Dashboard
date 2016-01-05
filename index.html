@@ -1,13 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
+<title>Drag and drop dash board demo #2</title>
 <script src="bower_components/d3/d3.js" charset="utf-8"></script>
 <script src="bower_components/interact/dist/interact.js"></script>
 
 <style>
-.summary-pane {
-  width: 15%;
+body {
+  margin: 1rem;
+}
+.super-container {
+  width: 70%;
   height: 500px;
+  overflow: hidden;
+}
+
+.summary-pane {
+  width: 20%;
+  height: 1500px;
   background-color: #EEEEEE;
   float: left;
   margin: 0;
@@ -15,7 +25,7 @@
 }
 
 .detail-pane {
-  width: 60%;
+  width: 50%;
   height: 500px;
   background-color: #EEEEFF;
   float: left;
@@ -24,7 +34,7 @@
 
 .detail-container {
   border-top: 1px solid #CCE;
-  height: 250px;
+  height: 165px;
   margin: 0;
 }
 
@@ -34,23 +44,42 @@
   margin: 10px;
   background-color: #CCCCCC;
   border-radius: 5px;
+  border: 1px solid #8802F3;
+  padding: 5px;
+  box-shadow: 2px 2px 2px #CCCCCC;
 }
 </style>
 </head>
 <body>
 <h3>Drag and drop demo 2</h3>
-<section>
+<section class="super-container" id="super-container">
   <div class="summary-pane" id="summary-pane">
-    <div class="tile drag-item drag-item-src"> T1 </div>
-    <div class="tile drag-item drag-item-src"> T2 </div>
+    <div class="tile drag-item drag-item-src">T1</div>
+    <div class="tile drag-item drag-item-src">T2</div>
+    <div class="tile drag-item drag-item-src">T3</div>
+    <div class="tile drag-item drag-item-src">T4</div>
+    <div class="tile drag-item drag-item-src">T5</div>
+    <div class="tile drag-item drag-item-src">T6</div>
   </div>
   <div class="detail-pane">
+    <div class="detail-container"></div>
     <div class="detail-container"></div>
     <div class="detail-container"></div>
   </div>
 </section>
 </body>
 <script>
+
+// D3 hacks to inject woring data
+var data = [];
+for (var i=0; i < 5; i++) data.push([]);
+data.forEach(function(d) {
+  for (var i=0; i < 50; i++) d.push(Math.random());
+});
+
+
+// End D3 hacks
+
 
 function dragMove(event) {
   var target = event.target;
@@ -62,13 +91,60 @@ function dragMove(event) {
 }
 
 function dragEnd(event) {
-  console.log('drag ended...', event);
+  // console.log('drag ended...', event);
   if (! event.target.classList.contains('drag-item-src')) {
-     d3.select(event.target).remove();
+    var target = d3.select(event.target).datum().containerTarget;
+    d3.select(event.target).remove();
+
+    if (!target) return;
+
+    // Test creating SVG
+    var svg = target.append('svg')
+      .attr('width', '100%').attr('height', '100%')
+      .attr('viewBox', '0 0 420 120')
+      // .attr('preserveAspectRatio', 'xMidYMid');
+      .attr('preserveAspectRatio', 'xMinYMin');
+
+    data[0].forEach(function(d, idx) {
+      svg.append('rect').attr('x', 10+idx*8).attr('y', 110).attr('width', 7).attr('height', 0).style('fill', '#369')
+        .transition().duration(30*idx).attr('height', d*60).attr('y', 110-d*60);
+    });
+
   }
 }
 
+/**
+ * This emulates a scroll
+ */
+interact('.summary-pane').draggable({
+  intertia: false,
+  restrict: {
+    restriction: '.super-container',
+    endOnly: true,
+    elementRect: {
+      top:1, left:0, bottom:0, right: 0
+    }
+  },
+  onmove: function(event) {
+    var dx = 0;
+    var dy = event.dy;
+    var panel = d3.select(event.target);
+    var transformY = +panel.attr('yy') || 0;
+    transformY += dy;
 
+    if (transformY > 0) transformY = 0;
+    if (transformY < - 500) transformY = -500;
+    panel.attr('yy', transformY);
+    event.target.style.webkitTransform = 'translate(0px,' + transformY + 'px)';
+    event.target.style.transform = 'translate(0px,' + transformY + 'px)';
+  }
+});
+
+
+/**
+ * Interaction for the draggable "tiles", tiles can be dragged and snapped to specific drop zones.
+ * Note this clones the draggable element, the clone is removed at the end of the drag phase.
+ */
 interact('.drag-item')
   .draggable({
     'inertia': true,
@@ -91,16 +167,24 @@ interact('.drag-item')
 
       var rect = interact.getElementRect(event.currentTarget);
       d3.select(clone).style('position', 'absolute');
+
+      // Test offset
+      var scrollOffset = +(d3.select('.summary-pane').attr('yy') || 0);
+//console.log('scroll offset', scrollOffset, rect.top);
       d3.select(clone).style('top', rect.top + 'px');
 
-
       // Test snapping back to original position
+      d3.select(clone).datum({});
+      d3.select(clone).datum().startPos = {
+         x: rect.left + rect.width / 2.0,
+         y: rect.top + rect.height / 2.0
+      };
       event.interactable.snap({targets: [{
          x: rect.left + rect.width / 2.0,
          y: rect.top + rect.height / 2.0
       }]});
 
-      document.getElementById('summary-pane').appendChild(clone);
+      document.getElementById('super-container').appendChild(clone);
       interaction.start({name: 'drag'}, event.interactable, clone);
     } else {
       interaction.start({name: 'drag'}, event.interactable, event.currentTarget);
@@ -114,14 +198,42 @@ interact('.drag-item')
     'ondragenter': function(event) {
       var src = event.relatedTarget;
       var dst = event.target;
+      d3.select(src).classed('inside-container', true);
       d3.select(dst).style('background-color', '#ABC');
+
+      // Transfer handle
+      d3.select(src).datum().containerTarget = d3.select(dst);
+
+      // Test
+      var rect = interact.getElementRect(event.target);
+      var center = {
+        x: rect.left + rect.width / 2.0,
+        y: rect.top + rect.height / 2.0
+      }
+      event.draggable.snap({
+        targets: [center]
+      })
+
     },
     'ondragleave': function(event) {
       var src = event.relatedTarget;
       var dst = event.target;
+      d3.select(src).classed('inside-container', false);
       d3.select(dst).style('background-color', '#EEF');
+
+      // Test
+      var rect = interact.getElementRect(event.target);
+      var center = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+      event.draggable.snap({
+        targets: [ d3.select(src).datum().startPos]
+      });
+
    },
    'ondrop': function(event) {
+      console.log('on drop fired');
       var src = event.relatedTarget;
       var dst = event.target;
       d3.select(dst).style('background-color', '#EEF');
