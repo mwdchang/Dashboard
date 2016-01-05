@@ -11,6 +11,9 @@ body {
   font-family: monospace;
 }
 
+.poe {
+}
+
 .poe-header {
   border: 1px solid #CCCCCC;
   padding: 10px;
@@ -62,7 +65,11 @@ body {
 </style>
 </head>
 <body>
-<h3>Drag and drop demo 2</h3>
+<p style="position:fixed">
+   <h3>Drag and drop demo 2</h3>
+   Drag each chart item from the left panel to a docking slot to expand and view the chart in finer detail.
+   Move the panel itself by dragging the panel header.
+</p>
 <section style="width:60%" class="poe" id="poe">
   <div class="poe-header">Panel : 12345</div>
   <div class="super-container" id="super-container">
@@ -73,6 +80,7 @@ body {
       <div class="tile drag-item drag-item-src">Chart 4</div>
       <div class="tile drag-item drag-item-src">Chart 5</div>
       <div class="tile drag-item drag-item-src">Chart 6</div>
+      <div class="tile drag-item drag-item-src">Chart 7</div>
     </div>
     <div class="detail-pane">
       <div class="detail-container"></div>
@@ -86,7 +94,7 @@ body {
 
 // D3 hacks to inject woring data
 var data = [];
-for (var i=0; i < 6; i++) data.push({
+for (var i=0; i < 7; i++) data.push({
   dummyChart: [],
   name: 'Chart ' + (i+1)
 });
@@ -123,7 +131,7 @@ function dragEnd(event) {
 
 
     d3.select(event.target).datum().dummyChart.forEach(function(d, idx) {
-      svg.append('rect').attr('x', 10+idx*8).attr('y', 110).attr('width', 7).attr('height', 0).style('fill', '#369')
+      svg.append('rect').attr('x', 10+idx*8).attr('y', 110).attr('width', 7).attr('height', 0).style('fill', '#369').style('opacity', '0.5')
         .transition().duration(30*idx).attr('height', d*60).attr('y', 110-d*60);
     });
     svg.append('text').attr('x', 370).attr('y', 20).text('Close ' + d3.select(event.target).datum().name).style('stroke', '#222').on('click', function() {
@@ -147,9 +155,15 @@ interact('.poe-header').draggable({
     target.style.webkitTransform = target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
     target.setAttribute('data-x', x);
     target.setAttribute('data-y', y);
-
   }
-})
+}).on('doubletap', function(event) {
+  var blah = d3.select('.super-container');
+  if (blah.style('display') === 'none') {
+    blah.style('display', null);
+  } else {
+    blah.style('display', 'none');
+  }
+});
 
 /**
  * This emulates a scroll
@@ -258,7 +272,6 @@ interact('.drag-item')
       event.draggable.snap({
         targets: [center]
       });
-
     },
     'ondragleave': function(event) {
       var src = event.relatedTarget;
@@ -278,7 +291,6 @@ interact('.drag-item')
       event.draggable.snap({
         targets: [ d3.select(src).datum().startPos]
       });
-
    },
    'ondrop': function(event) {
       console.log('on drop fired');
