@@ -10,8 +10,15 @@ body {
   margin: 1rem;
   font-family: monospace;
 }
+
+.poe-header {
+  border: 1px solid #CCCCCC;
+  padding: 10px;
+  font-size: 1.5rem;
+}
+
 .super-container {
-  width: 60%;
+  /* width: 60%; */
   height: 500px;
   overflow: hidden;
   margin: 0;
@@ -56,19 +63,22 @@ body {
 </head>
 <body>
 <h3>Drag and drop demo 2</h3>
-<section class="super-container" id="super-container">
-  <div class="summary-pane" id="summary-pane">
-    <div class="tile drag-item drag-item-src">Chart 1</div>
-    <div class="tile drag-item drag-item-src">Chart 2</div>
-    <div class="tile drag-item drag-item-src">Chart 3</div>
-    <div class="tile drag-item drag-item-src">Chart 4</div>
-    <div class="tile drag-item drag-item-src">Chart 5</div>
-    <div class="tile drag-item drag-item-src">Chart 6</div>
-  </div>
-  <div class="detail-pane">
-    <div class="detail-container"></div>
-    <div class="detail-container"></div>
-    <div class="detail-container"></div>
+<section style="width:60%" class="poe" id="poe">
+  <div class="poe-header">Panel : 12345</div>
+  <div class="super-container" id="super-container">
+    <div class="summary-pane" id="summary-pane">
+      <div class="tile drag-item drag-item-src">Chart 1</div>
+      <div class="tile drag-item drag-item-src">Chart 2</div>
+      <div class="tile drag-item drag-item-src">Chart 3</div>
+      <div class="tile drag-item drag-item-src">Chart 4</div>
+      <div class="tile drag-item drag-item-src">Chart 5</div>
+      <div class="tile drag-item drag-item-src">Chart 6</div>
+    </div>
+    <div class="detail-pane">
+      <div class="detail-container"></div>
+      <div class="detail-container"></div>
+      <div class="detail-container"></div>
+    </div>
   </div>
 </section>
 </body>
@@ -84,8 +94,6 @@ data.forEach(function(d) {
   for (var i=0; i < 50; i++) d.dummyChart.push(Math.random());
 });
 d3.selectAll('.drag-item').data(data);
-
-
 // End D3 hacks
 
 
@@ -119,6 +127,7 @@ function dragEnd(event) {
         .transition().duration(30*idx).attr('height', d*60).attr('y', 110-d*60);
     });
     svg.append('text').attr('x', 370).attr('y', 20).text('Close ' + d3.select(event.target).datum().name).style('stroke', '#222').on('click', function() {
+      console.log('hi');
       svg.remove();
     });
 
@@ -126,10 +135,27 @@ function dragEnd(event) {
 }
 
 /**
+ * The main panel
+ */
+interact('.poe-header').draggable({
+  inertia: false,
+  onmove: function(event) {
+    var target = d3.select('.poe').node();
+    var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+    var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+    target.style.webkitTransform = target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+    target.setAttribute('data-x', x);
+    target.setAttribute('data-y', y);
+
+  }
+})
+
+/**
  * This emulates a scroll
  */
 interact('.summary-pane').draggable({
-  intertia: false,
+  inertia: false,
   restrict: {
     restriction: '.super-container',
     endOnly: true,
@@ -182,8 +208,10 @@ interact('.drag-item')
 
       // Test offset
       var scrollOffset = +(d3.select('.summary-pane').attr('yy') || 0);
+
 //console.log('scroll offset', scrollOffset, rect.top);
       d3.select(clone).style('top', rect.top + 'px');
+      d3.select(clone).style('left', rect.left + 'px');
 
       // Test snapping back to original position
       d3.select(clone).datum( d3.select(event.currentTarget).datum());
@@ -199,7 +227,9 @@ interact('.drag-item')
          y: rect.top + rect.height / 2.0
       }]});
 
-      document.getElementById('super-container').appendChild(clone);
+      //document.getElementById('poe').appendChild(clone);
+      document.body.appendChild(clone);
+
       interaction.start({name: 'drag'}, event.interactable, clone);
     } else {
       interaction.start({name: 'drag'}, event.interactable, event.currentTarget);
