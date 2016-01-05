@@ -8,27 +8,31 @@
 <style>
 body {
   margin: 1rem;
+  font-family: monospace;
 }
 .super-container {
-  width: 70%;
+  width: 60%;
   height: 500px;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-shadow: 1px 1px 1px #CCCCCC;
+  border: 1px solid #CCCCCC;
 }
 
 .summary-pane {
-  width: 20%;
+  width: 25%;
   height: 1500px;
   background-color: #EEEEEE;
   float: left;
   margin: 0;
-  border-right: 1px solid #CCE;
 }
 
 .detail-pane {
-  width: 50%;
+  width: 75%;
   height: 500px;
   background-color: #EEEEFF;
-  float: left;
+  float: right;
   margin: 0;
 }
 
@@ -41,7 +45,7 @@ body {
 .tile {
   width: 150px;
   height: 80px;
-  margin: 10px;
+  margin: 15px;
   background-color: #CCCCCC;
   border-radius: 5px;
   border: 1px solid #8802F3;
@@ -54,12 +58,12 @@ body {
 <h3>Drag and drop demo 2</h3>
 <section class="super-container" id="super-container">
   <div class="summary-pane" id="summary-pane">
-    <div class="tile drag-item drag-item-src">T1</div>
-    <div class="tile drag-item drag-item-src">T2</div>
-    <div class="tile drag-item drag-item-src">T3</div>
-    <div class="tile drag-item drag-item-src">T4</div>
-    <div class="tile drag-item drag-item-src">T5</div>
-    <div class="tile drag-item drag-item-src">T6</div>
+    <div class="tile drag-item drag-item-src">Chart 1</div>
+    <div class="tile drag-item drag-item-src">Chart 2</div>
+    <div class="tile drag-item drag-item-src">Chart 3</div>
+    <div class="tile drag-item drag-item-src">Chart 4</div>
+    <div class="tile drag-item drag-item-src">Chart 5</div>
+    <div class="tile drag-item drag-item-src">Chart 6</div>
   </div>
   <div class="detail-pane">
     <div class="detail-container"></div>
@@ -72,10 +76,14 @@ body {
 
 // D3 hacks to inject woring data
 var data = [];
-for (var i=0; i < 5; i++) data.push([]);
-data.forEach(function(d) {
-  for (var i=0; i < 50; i++) d.push(Math.random());
+for (var i=0; i < 6; i++) data.push({
+  dummyChart: [],
+  name: 'Chart ' + (i+1)
 });
+data.forEach(function(d) {
+  for (var i=0; i < 50; i++) d.dummyChart.push(Math.random());
+});
+d3.selectAll('.drag-item').data(data);
 
 
 // End D3 hacks
@@ -101,13 +109,17 @@ function dragEnd(event) {
     // Test creating SVG
     var svg = target.append('svg')
       .attr('width', '100%').attr('height', '100%')
-      .attr('viewBox', '0 0 420 120')
+      .attr('viewBox', '0 0 410 120')
       // .attr('preserveAspectRatio', 'xMidYMid');
       .attr('preserveAspectRatio', 'xMinYMin');
 
-    data[0].forEach(function(d, idx) {
+
+    d3.select(event.target).datum().dummyChart.forEach(function(d, idx) {
       svg.append('rect').attr('x', 10+idx*8).attr('y', 110).attr('width', 7).attr('height', 0).style('fill', '#369')
         .transition().duration(30*idx).attr('height', d*60).attr('y', 110-d*60);
+    });
+    svg.append('text').attr('x', 370).attr('y', 20).text('Close ' + d3.select(event.target).datum().name).style('stroke', '#222').on('click', function() {
+      svg.remove();
     });
 
   }
@@ -174,7 +186,10 @@ interact('.drag-item')
       d3.select(clone).style('top', rect.top + 'px');
 
       // Test snapping back to original position
-      d3.select(clone).datum({});
+      d3.select(clone).datum( d3.select(event.currentTarget).datum());
+      if (! d3.select(clone).datum()) {
+        d3.select(clone).datum({});
+      }
       d3.select(clone).datum().startPos = {
          x: rect.left + rect.width / 2.0,
          y: rect.top + rect.height / 2.0
@@ -209,10 +224,10 @@ interact('.drag-item')
       var center = {
         x: rect.left + rect.width / 2.0,
         y: rect.top + rect.height / 2.0
-      }
+      };
       event.draggable.snap({
         targets: [center]
-      })
+      });
 
     },
     'ondragleave': function(event) {
@@ -220,6 +235,9 @@ interact('.drag-item')
       var dst = event.target;
       d3.select(src).classed('inside-container', false);
       d3.select(dst).style('background-color', '#EEF');
+
+      // Nuke transfer handle
+      d3.select(src).datum().containerTarget = undefined;
 
       // Test
       var rect = interact.getElementRect(event.target);
