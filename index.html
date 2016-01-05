@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="bower_components/d3/d3.js" charset="utf-8"></script>
+<script src="bower_components/interact/dist/interact.js"></script>
+
+<style>
+.summary-pane {
+  width: 15%;
+  height: 500px;
+  background-color: #EEEEEE;
+  float: left;
+  margin: 0;
+  border-right: 1px solid #CCE;
+}
+
+.detail-pane {
+  width: 60%;
+  height: 500px;
+  background-color: #EEEEFF;
+  float: left;
+  margin: 0;
+}
+
+.detail-container {
+  border-top: 1px solid #CCE;
+  height: 250px;
+  margin: 0;
+}
+
+.tile {
+  width: 150px;
+  height: 80px;
+  margin: 10px;
+  background-color: #CCCCCC;
+  border-radius: 5px;
+}
+</style>
+</head>
+<body>
+<h3>Drag and drop demo 2</h3>
+<section>
+  <div class="summary-pane" id="summary-pane">
+    <div class="tile drag-item drag-item-src"> T1 </div>
+    <div class="tile drag-item drag-item-src"> T2 </div>
+  </div>
+  <div class="detail-pane">
+    <div class="detail-container"></div>
+    <div class="detail-container"></div>
+  </div>
+</section>
+</body>
+<script>
+
+function dragMove(event) {
+  var target = event.target;
+  var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+  var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+  target.style.webkitTransform = target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+  target.setAttribute('data-x', x);
+  target.setAttribute('data-y', y);
+}
+
+function dragEnd(event) {
+  console.log('drag ended...', event);
+  if (! event.target.classList.contains('drag-item-src')) {
+     d3.select(event.target).remove();
+  }
+}
+
+
+interact('.drag-item')
+  .draggable({
+    'inertia': true,
+    'manualStart': true,
+    'onmove': dragMove,
+    'onend': dragEnd,
+    'snap': {
+      targets: [],
+      range: Infinity,
+      relativePoints: [{x:0.5, y:0.5}],
+      endOnly: true
+    }
+  })
+  .on('move', function(event) {
+    var interaction = event.interaction;
+
+    if (interaction.pointerIsDown && !interaction.interacting() && event.currentTarget.classList.contains('drag-item-src')) {
+      var clone = event.currentTarget.cloneNode(true);
+      clone.className = clone.className.replace(/\bdrag-item-src\b/, '');
+
+      var rect = interact.getElementRect(event.currentTarget);
+      d3.select(clone).style('position', 'absolute');
+      d3.select(clone).style('top', rect.top + 'px');
+
+
+      // Test snapping back to original position
+      event.interactable.snap({targets: [{
+         x: rect.left + rect.width / 2.0,
+         y: rect.top + rect.height / 2.0
+      }]});
+
+      document.getElementById('summary-pane').appendChild(clone);
+      interaction.start({name: 'drag'}, event.interactable, clone);
+    } else {
+      interaction.start({name: 'drag'}, event.interactable, event.currentTarget);
+    }
+  });
+
+
+  interact('.detail-container').dropzone({
+    'accept': '.drag-item',
+    'overlap': 0.5,
+    'ondragenter': function(event) {
+      var src = event.relatedTarget;
+      var dst = event.target;
+      d3.select(dst).style('background-color', '#ABC');
+    },
+    'ondragleave': function(event) {
+      var src = event.relatedTarget;
+      var dst = event.target;
+      d3.select(dst).style('background-color', '#EEF');
+   },
+   'ondrop': function(event) {
+      var src = event.relatedTarget;
+      var dst = event.target;
+      d3.select(dst).style('background-color', '#EEF');
+   }
+  });
+
+</script>
+</html>

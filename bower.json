@@ -1,0 +1,21 @@
+{
+  "name": "Dashboard",
+  "version": "0.0.0",
+  "homepage": "https://github.com/mwdchang/Dashboard",
+  "authors": [
+    "Daniel Chang <mwdchang@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [
+    "globals"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
