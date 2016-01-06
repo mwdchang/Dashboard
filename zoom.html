@@ -37,21 +37,30 @@ body {
 <script>
 var parse = d3.time.format("%Y-%m-%d").parse;
 
-var w = 800;
+var w = 900;
 var h = 300;
 var startTime = parse('2015-01-01');
 var endTime = parse('2015-12-31');
 
+var MAGIC_OFF_SET = 50;
+
 var svg = d3.select('#canvas').attr('width', w).attr('height', h);
 var vis = svg.append('g');
 // var scale = d3.time.scale().domain([startTime, endTime]).range([0, 500]).nice();
-var scale = d3.time.scale().domain([startTime, endTime]).range([0, 700]);
+var scale = d3.time.scale().domain([startTime, endTime]).range([0, 700]).nice(4);
 
 
-var xaxis = d3.svg.axis().scale(scale).orient('bottom')
-  .ticks(4)
-  .tickSize(6)
-  .tickFormat(d3.time.format('%Y-%m-%d'));
+// Test
+var annotations = [];
+var counter = 0;
+
+var xaxis = d3.svg.axis()
+  .scale(scale)
+  .orient('bottom')
+  .ticks(3)
+  .tickSize(4)
+  .outerTickSize(0)
+  .tickFormat(d3.time.format('%Y-%m-%d'))
 
 var zoom = d3.behavior.zoom();
 zoom.scaleExtent([1, 10]);
@@ -71,16 +80,46 @@ function zoomed() {
   tx = Math.min(tx, 0);
   zoom.translate([tx, ty]);
   d3.select('.blah').call(xaxis);
+
+  // Test
+  vis.selectAll('.annotation').remove();
+
+  var gg = vis.selectAll('.annotation')
+    .data(annotations)
+    .enter()
+    .append('g')
+    .classed('annotation', true);
+
+  gg.append('text')
+    .attr('x', function(d) { return MAGIC_OFF_SET+scale(d.x)-5;})
+    .attr('y', 15)
+    .text(function(d, i) { return i;});
+
+  gg.append('rect')
+    .attr('x', function(d) { return MAGIC_OFF_SET+scale(d.x);})
+    .attr('y', 15)
+    .attr('width', 3)
+    .attr('height', 220)
+    .style('fill', '#36D');
 }
 
 var zoomArea = vis.append('rect')
-  .attr('x', 50)
+  .attr('x', MAGIC_OFF_SET)
   .attr('y', 10)
   .attr('width', 700)
-  .attr('height', 100)
-  .style('fill', '#C96')
+  .attr('height', 200)
+  .style('fill', '#EA4')
   .call(zoom)
   .on('dblclick.zoom', null);
+
+zoomArea.on('click', function() {
+  var locationData = d3.mouse(this);
+  annotations.push({
+    x: scale.invert(locationData[0]-MAGIC_OFF_SET)
+  });
+  console.log('clicked', locationData[0], scale.invert(locationData[0]-MAGIC_OFF_SET), annotations.length);
+  zoomed();
+});
 
 // Reset zoom
 d3.select('input').on('click', function() {
@@ -94,10 +133,13 @@ d3.select('input').on('click', function() {
 });
 
 vis.append('g')
-  .attr('transform', 'translate(50, 115)')
+  .attr('transform', 'translate(' + MAGIC_OFF_SET+ ', 215)')
   .classed('axis', true)
   .classed('blah', true)
   .call(xaxis);
+
+d3.select('.blah').call(xaxis);
+// d3.select(vis.selectAll(".tick")[0][0]).attr("visibility","hidden");
 
 </script>
 </html>
