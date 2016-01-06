@@ -35,14 +35,37 @@ body {
   <svg id="canvas"></svg>
 </body>
 <script>
+'use strict';
+
 var parse = d3.time.format("%Y-%m-%d").parse;
 
 var w = 900;
 var h = 300;
-var startTime = parse('2015-01-01');
+var startTime = parse('2014-01-01');
 var endTime = parse('2015-12-31');
 
 var MAGIC_OFF_SET = 50;
+
+var days = d3.time.day.range(new Date(startTime), new Date(endTime));
+var weeks = d3.time.week.range(new Date(startTime), new Date(endTime));
+console.log('number of generated days', days.length, weeks.length);
+
+
+var weeksData = weeks.map(function(d) {
+  return {
+    x: d,
+    value: Math.random()
+  };
+});
+
+
+var daysData = days.map(function(d) {
+  return {
+    x: d,
+    value: Math.random()
+  };
+});
+
 
 var svg = d3.select('#canvas').attr('width', w).attr('height', h);
 var vis = svg.append('g');
@@ -60,7 +83,7 @@ var xaxis = d3.svg.axis()
   .ticks(3)
   .tickSize(4)
   .outerTickSize(0)
-  .tickFormat(d3.time.format('%Y-%m-%d'))
+  .tickFormat(d3.time.format('%Y-%m-%d'));
 
 var zoom = d3.behavior.zoom();
 zoom.scaleExtent([1, 10]);
@@ -81,7 +104,31 @@ function zoomed() {
   zoom.translate([tx, ty]);
   d3.select('.blah').call(xaxis);
 
-  // Test
+
+  // Test semantic zoom
+  vis.selectAll('.data-test').remove();
+
+  var w = Math.abs(scale(weeksData[0].x) - scale(weeksData[1].x));
+  var blahData = weeksData;
+  if (w > 25) {
+    w = Math.abs(scale(daysData[0].x) - scale(daysData[1].x));
+    blahData = daysData;
+  }
+
+  for (var i=0; i < blahData.length; i++) {
+    var h = blahData[i].value * 160;
+    vis.append('rect')
+      .classed('data-test', true)
+      .attr('x', scale(blahData[i].x) + MAGIC_OFF_SET)
+      .attr('y', 10)
+      .attr('width', (w))
+      .attr('height', h)
+      .style('fill', '#369');
+  }
+
+
+
+  // Test annotation
   vis.selectAll('.annotation').remove();
 
   var gg = vis.selectAll('.annotation')
@@ -93,7 +140,9 @@ function zoomed() {
   gg.append('text')
     .attr('x', function(d) { return MAGIC_OFF_SET+scale(d.x)-5;})
     .attr('y', 15)
-    .text(function(d, i) { return i;});
+    .text(function(d, i) {
+      return i;
+    });
 
   gg.append('rect')
     .attr('x', function(d) { return MAGIC_OFF_SET+scale(d.x);})
@@ -109,6 +158,7 @@ var zoomArea = vis.append('rect')
   .attr('width', 700)
   .attr('height', 200)
   .style('fill', '#EA4')
+  .style('opacity', 0.5)
   .call(zoom)
   .on('dblclick.zoom', null);
 
@@ -139,6 +189,7 @@ vis.append('g')
   .call(xaxis);
 
 d3.select('.blah').call(xaxis);
+zoomed();
 // d3.select(vis.selectAll(".tick")[0][0]).attr("visibility","hidden");
 
 </script>
