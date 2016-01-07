@@ -16,12 +16,12 @@ body {
 
 .axis line {
   stroke: #000;
-  stroke-width: 3px
+  stroke-width: 1px;
 }
 
 .axis path {
   fill: none;
-  stroke-width: 3px;
+  stroke-width: 1px;
   stroke: #222;
 }
 
@@ -47,11 +47,11 @@ var endTime = parse('2015-12-31');
 var MAGIC_OFF_SET = 50;
 
 var days = d3.time.day.range(new Date(startTime), new Date(endTime));
-var weeks = d3.time.week.range(new Date(startTime), new Date(endTime));
-console.log('number of generated days', days.length, weeks.length);
+var months = d3.time.month.range(new Date(startTime), new Date(endTime));
+console.log('number of generated days', days.length, months.length);
 
 
-var weeksData = weeks.map(function(d) {
+var monthsData = months.map(function(d) {
   return {
     x: d,
     value: Math.random()
@@ -81,7 +81,7 @@ var xaxis = d3.svg.axis()
   .scale(scale)
   .orient('bottom')
   .ticks(3)
-  .tickSize(4)
+  .tickSize(10)
   .outerTickSize(0)
   .tickFormat(d3.time.format('%Y-%m-%d'));
 
@@ -90,7 +90,7 @@ zoom.scaleExtent([1, 10]);
 zoom.on('zoom', function() {
   // Try to prevent default double tap semantics here
   if ( ! d3.event.sourceEvent) return;
-  console.log('zooming...', d3.event);
+  // console.log('zooming...', d3.event);
   zoomed();
 });
 
@@ -99,34 +99,45 @@ zoom.x(scale);
 function zoomed() {
   // Don't scroll past start
   var t = zoom.translate();
+  var s = zoom.scale();
   var tx = t[0], ty=t[1];
+
+console.log(s, t[0], tx);
+
+
+  // Bounds
   tx = Math.min(tx, 0);
+  if (tx < (-700*s + 700)) {
+     tx = -700*s + 700;
+  }
+
+
   zoom.translate([tx, ty]);
   d3.select('.blah').call(xaxis);
-
 
   // Test semantic zoom
   vis.selectAll('.data-test').remove();
 
-  var w = Math.abs(scale(weeksData[0].x) - scale(weeksData[1].x));
-  var blahData = weeksData;
-  if (w > 25) {
+  var w = Math.abs(scale(monthsData[0].x) - scale(monthsData[1].x));
+  var blahData = monthsData;
+  if (w > 60) {
     w = Math.abs(scale(daysData[0].x) - scale(daysData[1].x));
     blahData = daysData;
   }
 
   for (var i=0; i < blahData.length; i++) {
+
+// console.log('blah data ', blahData[i].x);
+
     var h = blahData[i].value * 160;
     vis.append('rect')
       .classed('data-test', true)
       .attr('x', scale(blahData[i].x) + MAGIC_OFF_SET)
       .attr('y', 10)
-      .attr('width', (w))
+      .attr('width', w-1)
       .attr('height', h)
       .style('fill', '#369');
   }
-
-
 
   // Test annotation
   vis.selectAll('.annotation').remove();
@@ -165,9 +176,9 @@ var zoomArea = vis.append('rect')
 zoomArea.on('click', function() {
   var locationData = d3.mouse(this);
   annotations.push({
-    x: scale.invert(locationData[0]-MAGIC_OFF_SET)
+    x: scale.invert(locationData[0] - MAGIC_OFF_SET)
   });
-  console.log('clicked', locationData[0], scale.invert(locationData[0]-MAGIC_OFF_SET), annotations.length);
+  console.log('clicked', locationData[0], scale.invert(locationData[0] - MAGIC_OFF_SET), annotations.length);
   zoomed();
 });
 
